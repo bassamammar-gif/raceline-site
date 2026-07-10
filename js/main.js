@@ -14,6 +14,13 @@
       const isOpen = navLinks.classList.toggle("is-open");
       navToggle.setAttribute("aria-expanded", String(isOpen));
     });
+    // choosing a destination closes the mobile menu so it never covers the page
+    navLinks.addEventListener("click", (e) => {
+      if (e.target.closest("a")) {
+        navLinks.classList.remove("is-open");
+        navToggle.setAttribute("aria-expanded", "false");
+      }
+    });
   }
 
   /* --------------------------------------------------------------------

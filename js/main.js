@@ -21,7 +21,73 @@
         navToggle.setAttribute("aria-expanded", "false");
       }
     });
+    // Escape closes the menu and hands focus back to the button that opened it
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && navLinks.classList.contains("is-open")) {
+        navLinks.classList.remove("is-open");
+        navToggle.setAttribute("aria-expanded", "false");
+        navToggle.focus();
+      }
+    });
   }
+
+  /* --------------------------------------------------------------------
+     Drag-to-scroll for the gallery strips (mouse only — touch and wheel
+     already scroll natively; this makes the existing grab cursor honest).
+     Instagram tiles are links, so a real drag must swallow the click that
+     fires on release, and native image ghost-drag must not steal the gesture.
+     Direct manipulation, not animation — runs regardless of motion preference.
+     -------------------------------------------------------------------- */
+  document.querySelectorAll(".gallery").forEach((strip) => {
+    let startX = 0;
+    let startScroll = 0;
+    let dragging = false;
+    let dragged = false;
+
+    strip.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      dragging = true;
+      dragged = false;
+      startX = e.clientX;
+      startScroll = strip.scrollLeft;
+      strip.setPointerCapture(e.pointerId);
+    });
+
+    strip.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      // 4px dead zone so an ordinary click never registers as a drag
+      if (Math.abs(dx) > 4) dragged = true;
+      if (dragged) {
+        strip.classList.add("is-dragging");
+        strip.scrollLeft = startScroll - dx;
+      }
+    });
+
+    const endDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      strip.classList.remove("is-dragging");
+      if (strip.hasPointerCapture(e.pointerId)) strip.releasePointerCapture(e.pointerId);
+    };
+    strip.addEventListener("pointerup", endDrag);
+    strip.addEventListener("pointercancel", endDrag);
+
+    // the click that follows a drag release must not open the tile link
+    strip.addEventListener(
+      "click",
+      (e) => {
+        if (dragged) {
+          e.preventDefault();
+          e.stopPropagation();
+          dragged = false;
+        }
+      },
+      true
+    );
+
+    strip.addEventListener("dragstart", (e) => e.preventDefault());
+  });
 
   /* --------------------------------------------------------------------
      Lazy videos (video[data-lazy]): the file only starts downloading after

@@ -19,6 +19,9 @@
   if (isAr) {
     document.documentElement.lang = "ar";
     document.documentElement.dir = "rtl";
+    // data-i18n only swaps innerHTML — attribute labels need explicit handling
+    const navToggle = document.querySelector(".site-nav__toggle");
+    if (navToggle) navToggle.setAttribute("aria-label", "فتح وإغلاق القائمة");
     if (window.RLM_I18N_AR["meta.title"]) document.title = window.RLM_I18N_AR["meta.title"];
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const t = window.RLM_I18N_AR[el.dataset.i18n];

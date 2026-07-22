@@ -25,7 +25,22 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { background: var(--color-bg); scroll-behavior: auto; }
+html {
+  background: var(--color-bg);
+  scroll-behavior: auto;
+  /* belt-and-suspenders against sideways-parked elements creating a
+     horizontal scroll area (body's overflow-x doesn't guard the viewport) */
+  overflow-x: hidden;
+  /* dark-only site: keep scrollbars and native controls dark too */
+  color-scheme: dark;
+  /* custom hover/active feedback everywhere — kill the default gray tap flash */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* removes the 300ms double-tap-zoom delay on touch without blocking pinch zoom */
+a, button {
+  touch-action: manipulation;
+}
 
 html[dir="rtl"] body { direction: rtl; }
 
@@ -61,6 +76,8 @@ h1, h2, h3, h4 {
   position: relative;
   padding-top: var(--section-pad-y);
   padding-bottom: var(--section-pad-y);
+  /* anchor jumps land below the fixed nav */
+  scroll-margin-top: 4.5rem;
 }
 
 .section-label {
@@ -89,7 +106,9 @@ h1, h2, h3, h4 {
 .skip-link {
   position: absolute;
   top: 0;
-  left: -100vw;
+  /* logical property, not `left`: parking at left -100vw creates a full
+     viewport of scrollable overflow in RTL (documents scroll leftward there) */
+  inset-inline-start: -100vw;
   z-index: 300;
   padding: 0.75rem 1.25rem;
   background: var(--color-lime);
@@ -98,7 +117,7 @@ h1, h2, h3, h4 {
 }
 
 .skip-link:focus {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 /* Visible focus states */
@@ -205,6 +224,14 @@ input:focus-visible {
   padding: 0.35rem 0.9rem;
   cursor: pointer;
   transition: border-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+  /* keep the compact pill look but extend the hit area to ~44px */
+  position: relative;
+}
+
+.site-nav__lang::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }
 
 .site-nav__lang:hover {
@@ -219,6 +246,11 @@ input:focus-visible {
   color: var(--color-text);
   font-size: 1.5rem;
   cursor: pointer;
+  /* 24px glyph + 10px padding each side = 44px touch target; the negative
+     margin cancels the layout shift so the nav row metrics don't change */
+  padding: 0.625rem;
+  margin: -0.625rem;
+  min-width: 2.75rem; /* the ☰ glyph is narrower than it is tall */
 }
 
 @media (max-width: 860px) {
@@ -399,17 +431,41 @@ input:focus-visible {
   100% { transform: translateY(250%); }
 }
 
+/* On phones the bottom-anchored subtitle runs into the centered indicator —
+   it's decorative (aria-hidden), so drop it rather than squeeze the copy */
+@media (max-width: 700px) {
+  .hero__scroll-indicator { display: none; }
+}
+
 /* ==========================================================================
    Marquee
    ========================================================================== */
 
 .marquee {
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  position: relative;
   padding: 1.25rem 0;
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* Kerb strips: the red/white curbing that edges every kart track, marking
+   the marquee bands as the "track edges" between site sections */
+.marquee::before,
+.marquee::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-red) 0 8px,
+    rgba(255, 255, 255, 0.92) 8px 16px
+  );
+}
+
+.marquee::before { top: 0; }
+.marquee::after { bottom: 0; }
 
 .marquee__track {
   display: inline-flex;
@@ -487,6 +543,16 @@ input:focus-visible {
 .equipment-card:hover .equipment-card__media img,
 .equipment-card:focus-within .equipment-card__media img {
   transform: scale(1.05);
+}
+
+/* Smooth that hover cue only when GSAP isn't driving transforms (no-JS or CDN
+   failure). Never attach a CSS transition when gsap-ready: it would fight the
+   per-frame quickTo pan on these same images. Reduced-motion users are covered
+   by the global transition kill. */
+html:not(.gsap-ready) .equipment-card__media img,
+html:not(.gsap-ready) .team-card__media img,
+html:not(.gsap-ready) .gallery__item img {
+  transition: transform 0.45s var(--ease-out);
 }
 
 .equipment-card__body {
@@ -586,6 +652,18 @@ input:focus-visible {
     gap: 0.25rem;
   }
   .timing-board__status { justify-self: start; margin-top: 0.5rem; }
+  /* Data rows stack single-column here, so the five stacked header labels are
+     just a wall of noise — hide them visually, keep them for screen readers */
+  .timing-board__row--head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    border: 0;
+  }
 }
 
 /* ==========================================================================
@@ -681,13 +759,19 @@ input:focus-visible {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-radius: 2px;
+  /* same cut corner as .pathway__sector — one angular language site-wide */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
   border: 1px solid transparent;
   cursor: pointer;
   transition: transform 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out);
 }
 
 .btn:hover { transform: translateY(-2px); }
+
+/* clip-path would clip the default outside-offset ring — draw it inward */
+.btn:focus-visible {
+  outline-offset: -4px;
+}
 
 .btn--primary {
   background: var(--color-red);
@@ -845,7 +929,7 @@ input:focus-visible {
 
 .achievement-row__place-label {
   margin-top: 0.2rem;
-  font-size: 0.6rem;
+  font-size: 0.7rem; /* raised from 9.6px; capped below 0.75 so it fits the 3.5rem mobile circle */
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -940,6 +1024,26 @@ input:focus-visible {
 
 .gallery:active { cursor: grabbing; }
 
+/* mid-drag: no text selection, and pause snap so it doesn't fight the
+   pointer — releasing re-enables it for the settle */
+.gallery.is-dragging {
+  user-select: none;
+  scroll-snap-type: none;
+}
+
+/* The strip itself is keyboard-focusable (tabindex=0) but is a div, so the
+   global a/button/input focus rule doesn't reach it */
+.gallery:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 3px;
+}
+
+/* Tile links sit inside an overflow container — draw the ring inward so it
+   can't be clipped at the scroll edges */
+.gallery__item--link:focus-visible {
+  outline-offset: -3px;
+}
+
 .gallery::-webkit-scrollbar { height: 6px; }
 .gallery::-webkit-scrollbar-thumb { background: var(--color-border); }
 
@@ -1002,8 +1106,9 @@ input:focus-visible {
 
 .whatsapp-float {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  /* clear the home indicator / notch on phones */
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  right: max(1.5rem, env(safe-area-inset-right));
   z-index: 200;
   width: 56px;
   height: 56px;
@@ -1020,7 +1125,7 @@ input:focus-visible {
 
 html[dir="rtl"] .whatsapp-float {
   right: auto;
-  left: 1.5rem;
+  left: max(1.5rem, env(safe-area-inset-left));
 }
 
 /* ==========================================================================
@@ -1085,6 +1190,7 @@ html.js .preloader {
   padding: 1.25rem 1.5rem;
   border: 1px solid var(--color-border);
   background: var(--color-bg-alt);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
 }
 
 .countdown__label {
@@ -1133,7 +1239,7 @@ html.js .preloader {
 
 .countdown__unit-label {
   margin-top: 0.35rem;
-  font-size: 0.6rem;
+  font-size: 0.75rem; /* 12px floor for readable labels */
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -1184,6 +1290,10 @@ html.js .preloader {
 /* Headline word-split clip mask, generalized from the hero title treatment */
 h2[data-split-words] {
   overflow: hidden;
+  /* True display scale: without this, section headlines fall back to the
+     24px browser default and end up smaller than the lime taglines above
+     them — the cinematic hierarchy depends on this rule */
+  font-size: clamp(2.5rem, 5.5vw, 4.75rem);
 }
 
 h2[data-split-words] .word,

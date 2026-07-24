@@ -27,6 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "comms-agent"))
 import academy_data as db_mod  # noqa: E402
+import drivers_page  # noqa: E402
+import progression as prog  # noqa: E402
 
 E = html.escape
 
@@ -111,10 +113,65 @@ STYLE = """
   .msg.assistant { background: rgba(210,255,0,.12); align-self: flex-end; }
   .banner { background: #E10600; color: #FFF; padding: .5rem 1.5rem;
             font-size: .85rem; font-weight: 600; }
+  /* Drivers (CRM) section */
+  .row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+  .small-caps { font-size: .68rem; text-transform: uppercase; letter-spacing: .12em; }
+  .dots { display: inline-flex; gap: 5px; flex-wrap: wrap; margin-top: .35rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+         border: 1px solid rgba(255,255,255,.1); }
+  .lvl { font-size: .62rem; font-weight: 700; letter-spacing: .08em; padding: .2em .7em;
+         border-radius: 20px; border: 1px solid; vertical-align: middle;
+         font-family: "Archivo Black", sans-serif; }
+  .flag { font-size: .58rem; font-weight: 700; letter-spacing: .06em; padding: .25em .6em;
+          border-radius: 20px; vertical-align: middle; margin-left: .3rem; }
+  .drv-head { display: flex; justify-content: space-between; gap: 1rem; }
+  .drv-name { font-family: "Archivo Black", sans-serif; font-size: 1.05rem; }
+  .total .n { font-family: "Archivo Black", sans-serif; font-size: 1.6rem; line-height: 1; }
+  .total { text-align: center; flex-shrink: 0; }
+  .btn { background: #D2FF00; color: #0C1002; border: 0; border-radius: 6px;
+         padding: .5em 1em; font-weight: 700; cursor: pointer; font-size: .82rem;
+         display: inline-block; text-decoration: none; font-family: inherit; }
+  .ghost { background: transparent; color: #7C8460; border: 1px solid rgba(210,255,0,.2);
+           border-radius: 6px; padding: .5em 1em; cursor: pointer; font-size: .82rem;
+           display: inline-block; font-family: inherit; }
+  .ghost.danger { color: #E10600; border-color: #E1060050; }
+  .btn.small, .ghost.small { padding: .35em .8em; font-size: .75rem; }
+  details { margin-top: .8rem; border-top: 1px solid rgba(210,255,0,.1); padding-top: .6rem; }
+  summary { cursor: pointer; color: #7C8460; font-size: .8rem; text-transform: uppercase;
+            letter-spacing: .08em; }
+  .inline-form { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
+  .inline-form input, .inline-form select { padding: .45em .7em; border-radius: 6px;
+      border: 1px solid rgba(210,255,0,.16); background: #0C1002; color: #FFF;
+      font-family: inherit; }
+  .inline-form input[type=text] { flex: 1; min-width: 140px; }
+  .stacked label { display: block; color: #7C8460; font-size: .75rem;
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: .9rem; }
+  .stacked input, .stacked select { display: block; width: 100%; margin-top: .35rem;
+      padding: .6em .8em; border-radius: 6px; border: 1px solid rgba(210,255,0,.16);
+      background: #0C1002; color: #FFF; font-size: .95rem; font-family: inherit; }
+  .lvl-opt { display: block; padding: .6rem .8rem; border: 1px solid rgba(210,255,0,.16);
+      border-radius: 8px; margin-bottom: .5rem; cursor: pointer; font-size: .85rem; }
+  .advbar { margin-top: .8rem; padding: .7rem .9rem; background: rgba(255,107,53,.07);
+      border: 1px solid rgba(255,107,53,.15); border-radius: 8px; }
+  .track { height: 5px; background: rgba(255,255,255,.06); border-radius: 99px;
+      overflow: hidden; margin-top: .45rem; }
+  .fill { height: 100%; border-radius: 99px; }
+  .promo { display: flex; justify-content: space-between; align-items: center; gap: .8rem;
+      margin-top: .8rem; padding: .8rem .9rem; background: rgba(210,255,0,.06);
+      border: 1px solid rgba(210,255,0,.2); border-radius: 8px; flex-wrap: wrap; }
+  .alert-row { display: flex; justify-content: space-between; align-items: center;
+      gap: .6rem; padding: .55rem .8rem; background: rgba(255,255,255,.03);
+      border: 1px solid rgba(210,255,0,.1); border-radius: 8px; margin-bottom: .4rem; }
+  .log-row { display: flex; justify-content: space-between; gap: .6rem;
+      padding: .5rem .7rem; border-bottom: 1px solid rgba(210,255,0,.08);
+      font-size: .88rem; }
+  .log-row .count { font-weight: 700; padding: .1em .6em; border-radius: 20px;
+      align-self: center; flex-shrink: 0; }
 """
 
-NAV = [("/", "Overview"), ("/escalations", "Escalations"), ("/sessions", "Sessions"),
-       ("/conversations", "Conversations"), ("/invoices", "Invoices")]
+NAV = [("/", "Overview"), ("/drivers", "Drivers"), ("/escalations", "Escalations"),
+       ("/sessions", "Sessions"), ("/conversations", "Conversations"),
+       ("/invoices", "Invoices")]
 
 
 def layout(title, body, active="/", dev_mode=False):
@@ -145,10 +202,13 @@ def page_overview():
         f"{E(', '.join(students[b]['name'] for b in s['booked'] if b in students)) or '<span class=muted>empty</span>'}</td></tr>"
         for s in upcoming)
 
+    prog_alerts = sum(len(prog.alerts_for(s)) for s in db["students"])
     return f"""
     <div class="tiles">
       <a class="tile{' alert' if open_esc else ''}" href="/escalations">
         <div class="label">Open escalations</div><div class="value">{len(open_esc)}</div></a>
+      <a class="tile{' alert' if prog_alerts else ''}" href="/drivers">
+        <div class="label">Driver alerts</div><div class="value">{prog_alerts}</div></a>
       <a class="tile" href="/sessions">
         <div class="label">Upcoming sessions</div>
         <div class="value">{len(db_mod.upcoming_sessions(db, limit=99))}</div></a>
@@ -282,6 +342,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         if path == "/":
             return self._html(layout("Overview", page_overview(), "/", dev))
+        if path == "/drivers":
+            query = urllib.parse.urlparse(self.path).query
+            return self._html(layout("Drivers", drivers_page.page_drivers(query),
+                                     "/drivers", dev))
+        if path == "/drivers/new":
+            return self._html(layout("Add driver", drivers_page.page_new_driver(),
+                                     "/drivers", dev))
         if path == "/escalations":
             return self._html(layout("Escalations", page_escalations(), path, dev))
         if path == "/sessions":
@@ -304,6 +371,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         form = urllib.parse.parse_qs(self.rfile.read(length).decode())
         path = urllib.parse.urlparse(self.path).path
 
+        if path.startswith("/drivers"):
+            redirect = drivers_page.handle_post(path, form)
+            return self._redirect(redirect or "/drivers")
         if path == "/escalations/resolve" and form.get("phone"):
             db_mod.resolve_escalations(form["phone"][0])
             return self._redirect("/escalations")

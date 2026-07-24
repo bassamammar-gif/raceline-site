@@ -11,6 +11,8 @@ import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+import progression
+
 DATA_DIR = Path(__file__).parent / "data"
 DB_FILE = DATA_DIR / "academy.json"
 ESCALATIONS_FILE = DATA_DIR / "escalations.json"
@@ -49,9 +51,32 @@ def _seed():
         ],
         "students": [
             {"id": "D001", "name": "Omar Khaled", "group": "Junior (12-15)",
-             "parent_phone": "+201001112233"},
+             "parent_phone": "+201001112233",
+             "level": "intermediate", "kart": "Junior",
+             "level_start_date": progression.add_months(today.isoformat(), -3),
+             "level_end_date": progression.add_months(today.isoformat(), 4),
+             "training_log": [
+                 {"date": progression.add_months(today.isoformat(), -1),
+                  "sessions": 2, "notes": "Strong pace, working on braking points"},
+                 {"date": (today - timedelta(days=14)).isoformat(),
+                  "sessions": 2, "notes": ""},
+                 {"date": (today - timedelta(days=7)).isoformat(),
+                  "sessions": 3, "notes": "First sub-59 lap"},
+             ],
+             "dismissed": {}},
             {"id": "D002", "name": "Layla Hassan", "group": "Cadet (7-12)",
-             "parent_phone": "+201004445566"},
+             "parent_phone": "+201004445566",
+             "level": "intro", "kart": "Mini",
+             "level_start_date": (today - timedelta(days=21)).isoformat(),
+             "level_end_date": progression.add_months(
+                 (today - timedelta(days=21)).isoformat(), 1),
+             "training_log": [
+                 {"date": (today - timedelta(days=14)).isoformat(),
+                  "sessions": 2, "notes": "First time in the kart — natural feel"},
+                 {"date": (today - timedelta(days=7)).isoformat(),
+                  "sessions": 2, "notes": ""},
+             ],
+             "dismissed": {}},
         ],
         "invoices": [
             {"id": "INV-2026-041", "student_id": "D001", "amount_egp": 5000,
@@ -71,7 +96,10 @@ def load():
     DATA_DIR.mkdir(exist_ok=True)
     if not DB_FILE.exists():
         save(_seed())
-    return json.loads(DB_FILE.read_text(encoding="utf-8"))
+    db = json.loads(DB_FILE.read_text(encoding="utf-8"))
+    for s in db["students"]:                 # migrate pre-CRM records in place
+        progression.ensure_progression_fields(s)
+    return db
 
 
 def save(db):
@@ -120,6 +148,50 @@ def cancel_booking(db, session_id, student_id):
     session["booked"].remove(student_id)
     save(db)
     return session, None
+
+
+# --- driver CRM (progression fields defined in progression.py) ----------------
+
+def add_student(db, name, parent_phone, group, kart, level, level_start_date):
+    next_num = max((int(s["id"][1:]) for s in db["students"]), default=0) + 1
+    student = progression.ensure_progression_fields({
+        "id": f"D{next_num:03d}", "name": name, "group": group,
+        "parent_phone": parent_phone, "kart": kart, "level": level,
+        "level_start_date": level_start_date,
+        "level_end_date": progression.add_months(
+            level_start_date, progression.LEVELS[level]["duration_months"]),
+    })
+    db["students"].append(student)
+    save(db)
+    return student
+
+
+def update_student(db, student_id, **fields):
+    student = next((s for s in db["students"] if s["id"] == student_id), None)
+    if student is None:
+        return None
+    allowed = {"name", "parent_phone", "group", "kart", "level",
+               "level_start_date"}
+    for k, v in fields.items():
+        if k in allowed and v:
+            student[k] = v
+    if "level" in fields or "level_start_date" in fields:
+        student["level_end_date"] = progression.add_months(
+            student["level_start_date"],
+            progression.LEVELS[student["level"]]["duration_months"])
+        student["dismissed"] = {}
+    save(db)
+    return student
+
+
+def delete_student(db, student_id):
+    before = len(db["students"])
+    db["students"] = [s for s in db["students"] if s["id"] != student_id]
+    for session in db["sessions"]:
+        if student_id in session["booked"]:
+            session["booked"].remove(student_id)
+    save(db)
+    return len(db["students"]) < before
 
 
 # --- escalations -------------------------------------------------------------

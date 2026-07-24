@@ -5,8 +5,16 @@ layer. Standard library only — no dependencies, runs anywhere Python runs.
 
 ## What staff can do
 
-- **Overview** — open escalations, upcoming sessions, unpaid invoices, and
-  active conversations at a glance, with the next sessions and who's booked.
+- **Overview** — open escalations, driver programme alerts, upcoming sessions,
+  unpaid invoices, and active conversations at a glance.
+- **Drivers (CRM)** — the full driver-development CRM: add/edit/remove
+  drivers, log coached sessions with notes, cycle progress dots
+  (INTRO 8/cycle · INTERMEDIATE 10/cycle · ADVANCED 10/month with a monthly
+  bar), automatic alerts for completed cycles, monthly check-ins, and
+  promotion reviews with one-click promote or extend. Progression rules live
+  in `comms-agent/progression.py` and are shared with the WhatsApp agent, so
+  a parent asking "how is my child progressing?" gets the same numbers staff
+  see here.
 - **Escalations** — every conversation the WhatsApp bot handed to a human,
   with the triggering message. **Resolve & un-mute bot** hands the
   conversation back to the agent (while open, the bot stays silent on that

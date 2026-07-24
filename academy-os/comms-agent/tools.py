@@ -9,6 +9,7 @@ or see other families' data — those actions simply don't exist as tools.
 import json
 
 import academy_data as db_mod
+import progression
 
 TOOL_DEFINITIONS = [
     {
@@ -45,9 +46,11 @@ TOOL_DEFINITIONS = [
     {
         "name": "get_my_family",
         "description": (
-            "The student, upcoming bookings, and invoices linked to the phone "
-            "number you are chatting with. Returns nothing if the number is "
-            "not registered."
+            "The student, upcoming bookings, invoices, and academy-programme "
+            "progress (level, months in level, coached sessions, current "
+            "cycle) linked to the phone number you are chatting with. Call "
+            "this for any 'how is my child doing/progressing' question. "
+            "Returns nothing if the number is not registered."
         ),
         "input_schema": {"type": "object", "properties": {},
                          "additionalProperties": False},
@@ -125,7 +128,9 @@ def execute_tool(name, tool_input, phone, last_user_message=""):
             for s in db["sessions"] if student["id"] in s["booked"]
         ]
         return json.dumps({
-            "student": {"name": student["name"], "group": student["group"]},
+            "student": {"name": student["name"], "group": student["group"],
+                        "kart": student.get("kart")},
+            "programme_progress": progression.progression_summary(student),
             "upcoming_bookings": bookings,
             "invoices": db_mod.invoices_for_student(db, student["id"]),
         }, ensure_ascii=False)

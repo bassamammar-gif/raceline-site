@@ -22,6 +22,7 @@ MAX_TOOL_ROUNDS = 8
 # Checked as lowercase substrings; Arabic terms included.
 ESCALATION_KEYWORDS = [
     "injur", "hurt", "accident", "crash", "hospital", "bleed", "broke",
+    "twist", "sprain", "ambulance", "unsafe", "dangerous",
     "refund", "money back", "lawyer", "sue", "legal",
     "إصابة", "مصاب", "اتصاب", "حادث", "مستشفى", "استرداد", "فلوسي", "محامي",
 ]

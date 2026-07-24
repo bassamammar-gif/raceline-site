@@ -15,6 +15,11 @@ layer. Standard library only — no dependencies, runs anywhere Python runs.
   in `comms-agent/progression.py` and are shared with the WhatsApp agent, so
   a parent asking "how is my child progressing?" gets the same numbers staff
   see here.
+- **WhatsApp analytics** — conversation statuses (new lead / registered /
+  booked / escalated / quiet), the contact → engaged → registered → booked
+  funnel, conversion and escalation rates, bookings made through the agent,
+  and a keyword-classified (EN/AR) breakdown of what parents ask about.
+  Events are recorded automatically by the comms agent — no setup needed.
 - **Escalations** — every conversation the WhatsApp bot handed to a human,
   with the triggering message. **Resolve & un-mute bot** hands the
   conversation back to the agent (while open, the bot stays silent on that

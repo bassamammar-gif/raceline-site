@@ -13,6 +13,7 @@ Safety is layered:
 from datetime import date
 
 import academy_data as db_mod
+import analytics
 from tools import TOOL_DEFINITIONS, execute_tool
 
 MODEL = "claude-opus-4-8"
@@ -106,6 +107,7 @@ def handle_message(phone, text):
     """Process one inbound WhatsApp message; return the reply to send,
     or None if the conversation is with a human and the bot must stay silent."""
     db_mod.append_conversation(phone, "user", text)
+    analytics.record("message_in", phone, topic=analytics.classify_topic(text))
 
     if db_mod.has_open_escalation(phone):
         return None                      # a human owns this conversation
@@ -113,7 +115,9 @@ def handle_message(phone, text):
     keyword = _pre_filter(text)
     if keyword:
         db_mod.log_escalation(phone, f"Auto-escalated (matched '{keyword}')", text)
+        analytics.record("escalated", phone, reason=f"keyword:{keyword}")
         db_mod.append_conversation(phone, "assistant", HANDOFF_REPLY)
+        analytics.record("message_out", phone)
         return HANDOFF_REPLY
 
     try:
@@ -121,7 +125,9 @@ def handle_message(phone, text):
         reply = _run_claude(phone, history, text)
     except Exception as exc:
         db_mod.log_escalation(phone, f"Agent error: {exc}", text)
+        analytics.record("escalated", phone, reason="agent_error")
         reply = HANDOFF_REPLY
 
     db_mod.append_conversation(phone, "assistant", reply)
+    analytics.record("message_out", phone)
     return reply

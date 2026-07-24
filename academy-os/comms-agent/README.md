@@ -68,6 +68,7 @@ Schedule with cron, e.g. `0 18 * * * cd .../comms-agent && python3 reminders.py 
 |---|---|
 | `academy_data.py` | Students, schedule, pricing, invoices, escalation queue, conversation history (JSON storage — swappable for a real DB later) |
 | `progression.py` | Academy level progression (INTRO → INTERMEDIATE → ADVANCED), session cycles, training log, promotion/extension — shared by the agent and the staff dashboard's Drivers CRM |
+| `analytics.py` | Conversation event log (messages, bookings, cancellations, escalations), EN/AR topic classification, and funnel/conversion rollups for the dashboard's WhatsApp page |
 | `tools.py` | Tool definitions + dispatcher; booking rules enforced here |
 | `agent.py` | Safety pre-filter, escalation gate, Claude agent loop |
 | `chat.py` | Terminal simulator — demo without WhatsApp |

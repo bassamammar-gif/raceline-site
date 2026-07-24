@@ -9,6 +9,7 @@ or see other families' data — those actions simply don't exist as tools.
 import json
 
 import academy_data as db_mod
+import analytics
 import progression
 
 TOOL_DEFINITIONS = [
@@ -141,6 +142,7 @@ def execute_tool(name, tool_input, phone, last_user_message=""):
         session, err = db_mod.book_session(db, tool_input["session_id"], student["id"])
         if err:
             return f"Booking failed: {err}"
+        analytics.record("booking", phone, session_id=session["id"])
         return (f"Booked: {student['name']} on {session['id']} — "
                 f"{session['date']} at {session['time']} ({session['group']}).")
 
@@ -150,6 +152,7 @@ def execute_tool(name, tool_input, phone, last_user_message=""):
         session, err = db_mod.cancel_booking(db, tool_input["session_id"], student["id"])
         if err:
             return f"Cancellation failed: {err}"
+        analytics.record("cancellation", phone, session_id=session["id"])
         return f"Cancelled: {session['id']} on {session['date']} at {session['time']}."
 
     if name == "escalate_to_human":

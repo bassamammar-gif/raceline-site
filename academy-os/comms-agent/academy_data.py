@@ -244,5 +244,6 @@ def append_conversation(phone, role, text):
     CONVERSATIONS_DIR.mkdir(parents=True, exist_ok=True)
     f = _conv_file(phone)
     history = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
-    history.append({"role": role, "content": text})
+    history.append({"role": role, "content": text,
+                    "at": datetime.now().isoformat(timespec="seconds")})
     f.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")

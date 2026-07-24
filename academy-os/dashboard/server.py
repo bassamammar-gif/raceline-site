@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "comms-agent"))
 import academy_data as db_mod  # noqa: E402
 import drivers_page  # noqa: E402
 import progression as prog  # noqa: E402
+import whatsapp_page  # noqa: E402
 
 E = html.escape
 
@@ -167,11 +168,19 @@ STYLE = """
       font-size: .88rem; }
   .log-row .count { font-weight: 700; padding: .1em .6em; border-radius: 20px;
       align-self: center; flex-shrink: 0; }
+  /* WhatsApp analytics */
+  .fun-row { display: flex; align-items: center; gap: .8rem; margin-bottom: .55rem; }
+  .fun-label { width: 200px; flex-shrink: 0; font-size: .85rem; color: #7C8460; }
+  .fun-track { flex: 1; height: 14px; background: rgba(255,255,255,.05);
+      border-radius: 4px; overflow: hidden; }
+  .fun-fill { height: 100%; border-radius: 4px; }
+  .fun-val { width: 46px; text-align: right; font-weight: 700;
+      font-family: "Archivo Black", sans-serif; }
 """
 
-NAV = [("/", "Overview"), ("/drivers", "Drivers"), ("/escalations", "Escalations"),
-       ("/sessions", "Sessions"), ("/conversations", "Conversations"),
-       ("/invoices", "Invoices")]
+NAV = [("/", "Overview"), ("/drivers", "Drivers"), ("/whatsapp", "WhatsApp"),
+       ("/escalations", "Escalations"), ("/sessions", "Sessions"),
+       ("/conversations", "Conversations"), ("/invoices", "Invoices")]
 
 
 def layout(title, body, active="/", dev_mode=False):
@@ -349,6 +358,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if path == "/drivers/new":
             return self._html(layout("Add driver", drivers_page.page_new_driver(),
                                      "/drivers", dev))
+        if path == "/whatsapp":
+            return self._html(layout("WhatsApp", whatsapp_page.page_whatsapp(),
+                                     path, dev))
         if path == "/escalations":
             return self._html(layout("Escalations", page_escalations(), path, dev))
         if path == "/sessions":
